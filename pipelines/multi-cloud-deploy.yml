@@ -1,0 +1,34 @@
+name: Multi-Cloud Unified Delivery Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-multi-cloud:
+    name: Synchronous Multi-Cloud Microservices Rollout
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cloud: [aws, azure, gcp]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Validate & Plan Infrastructure (${{ matrix.cloud }})
+        run: |
+          echo "Initializing Terraform IaC for provider: ${{ matrix.cloud }}..."
+          cd terraform/${{ matrix.cloud }}
+          terraform init -backend=false
+          terraform validate
+
+      - name: Deploy Kubernetes Workload to ${{ matrix.cloud }}
+        run: |
+          echo "Deploying unified microservice manifests to ${{ matrix.cloud }} Kubernetes cluster..."
+          python scripts/multi-cloud-health-check.py --target-cloud ${{ matrix.cloud }}
